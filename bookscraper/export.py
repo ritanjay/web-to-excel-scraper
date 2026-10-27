@@ -32,18 +32,18 @@ HEADERS = {
 WIDTHS = {
     "title": 48,
     "category": 20,
-    "price": 12,
-    "rating": 12,
-    "in_stock": 10,
-    "stock_count": 12,
+    "price": 14,
+    "rating": 15,
+    "in_stock": 12,
+    "stock_count": 15,
     "upc": 18,
-    "num_reviews": 10,
+    "num_reviews": 12,
     "url": 40,
     "image_url": 40,
     "description": 60,
 }
 HEADER_FILL = PatternFill("solid", fgColor="1F4E78")
-HEADER_FONT = Font(bold=True, color="FFFFFF")
+HEADER_FONT = Font(name="Calibri", bold=True, color="FFFFFF")
 GBP = '"£"#,##0.00'
 
 
@@ -119,8 +119,9 @@ def write_excel(
         table = Table(displayName="Books", ref=f"A1:{last_col}{n + 1}")
         table.tableStyleInfo = TableStyleInfo(name="TableStyleMedium2", showRowStripes=True)
         ws.add_table(table)
-    else:
-        _style_header(ws, len(cols))
+    # Style the header explicitly too: LibreOffice and Google Sheets ignore
+    # Excel table styles, and this keeps the header readable everywhere.
+    _style_header(ws, len(cols))
 
     # -------------------------------------------------------------- Summary
     sm = wb.create_sheet("Summary")
@@ -146,7 +147,7 @@ def write_excel(
     sm.cell(row=total_row, column=2, value=f"=SUM(B2:B{total_row - 1})").font = Font(bold=True)
     sm.cell(row=total_row, column=3, value=f"=AVERAGE({rng(price_col)})").number_format = GBP
     sm.cell(row=total_row, column=6, value=f"=AVERAGE({rng(rate_col)})").number_format = "0.00"
-    for letter, width in zip("ABCDEF", (24, 8, 11, 11, 11, 11)):
+    for letter, width in zip("ABCDEF", (24, 10, 13, 13, 13, 13)):
         sm.column_dimensions[letter].width = width
     sm.freeze_panes = "A2"
 
