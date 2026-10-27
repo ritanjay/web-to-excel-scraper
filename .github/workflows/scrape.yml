@@ -45,9 +45,12 @@ jobs:
             echo "Data unchanged; nothing to commit."
           else
             git commit -m "Update scraped data ($(date -u +%Y-%m-%d))"
+            # Someone may have pushed while we were scraping.
+            git pull --rebase
             git push
           fi
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: scraped-data
           path: sample-output/
