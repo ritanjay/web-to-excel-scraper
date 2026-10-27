@@ -39,11 +39,17 @@ jobs:
             -o sample-output/books.xlsx \
             --csv sample-output/books.csv \
             --json sample-output/books.json
+      - name: Screenshots for the README (real file opened in LibreOffice Calc)
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libreoffice-calc xvfb imagemagick fonts-crosextra-carlito >/dev/null
+          WAIT=40 bash docs/screenshot.sh sample-output/books.xlsx docs
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add sample-output
+          git add sample-output docs/*.png
           # The workbook embeds a timestamp, so only commit when the CSV data changed.
           if [ "${{ inputs.force }}" != "true" ] && git diff --cached --quiet -- sample-output/books.csv && git ls-files --error-unmatch sample-output/books.csv >/dev/null 2>&1; then
             echo "Data unchanged; nothing to commit."
