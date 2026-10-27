@@ -75,6 +75,7 @@ def test_excel_workbook_structure(site, tmp_path):
     assert ws.max_row == 6
     assert ws.freeze_panes == "A2"
     assert "Books" in ws.tables
+    assert ws["A1"].font.bold and ws["A1"].fill.fgColor.rgb.endswith("1F4E78")
     assert ws["C2"].number_format == '"£"#,##0.00'
     assert ws["F2"].hyperlink.target.startswith(BASE)
 
