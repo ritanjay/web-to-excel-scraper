@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.cache/
+build/
+dist/
+*.xlsx
+*.csv
+*.json
+!sample-output/*
+!tests/fixtures/*
