@@ -1,0 +1,53 @@
+name: Scheduled scrape
+
+# Runs the full scrape on GitHub's servers and commits the fresh Excel/CSV
+# into sample-output/ when the data has changed. Also runnable by hand from
+# the Actions tab ("Run workflow").
+on:
+  workflow_dispatch:
+    inputs:
+      details:
+        description: "Also fetch every product page (UPC, stock count, description)"
+        type: boolean
+        default: true
+  schedule:
+    - cron: "17 3 * * 1"  # Mondays 03:17 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: Scrape
+        run: |
+          DETAILS=""
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.details }}" = "true" ]; then
+            DETAILS="--details"
+          fi
+          bookscraper $DETAILS --delay 0.3 \
+            -o sample-output/books.xlsx \
+            --csv sample-output/books.csv \
+            --json sample-output/books.json
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sample-output
+          # The workbook embeds a timestamp, so only commit when the CSV data changed.
+          if git diff --cached --quiet -- sample-output/books.csv && git ls-files --error-unmatch sample-output/books.csv >/dev/null 2>&1; then
+            echo "Data unchanged; nothing to commit."
+          else
+            git commit -m "Update scraped data ($(date -u +%Y-%m-%d))"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scraped-data
+          path: sample-output/
