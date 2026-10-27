@@ -10,6 +10,10 @@ on:
         description: "Also fetch every product page (UPC, stock count, description)"
         type: boolean
         default: true
+      force:
+        description: "Commit the output even if the data is unchanged (e.g. after a layout change)"
+        type: boolean
+        default: false
   schedule:
     - cron: "17 3 * * 1"  # Mondays 03:17 UTC
 
@@ -41,7 +45,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add sample-output
           # The workbook embeds a timestamp, so only commit when the CSV data changed.
-          if git diff --cached --quiet -- sample-output/books.csv && git ls-files --error-unmatch sample-output/books.csv >/dev/null 2>&1; then
+          if [ "${{ inputs.force }}" != "true" ] && git diff --cached --quiet -- sample-output/books.csv && git ls-files --error-unmatch sample-output/books.csv >/dev/null 2>&1; then
             echo "Data unchanged; nothing to commit."
           else
             git commit -m "Update scraped data ($(date -u +%Y-%m-%d))"
