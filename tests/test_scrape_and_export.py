@@ -80,10 +80,32 @@ def test_excel_workbook_structure(site, tmp_path):
     assert ws["F2"].hyperlink.target.startswith(BASE)
 
     sm = wb["Summary"]
-    assert [sm.cell(row=r, column=1).value for r in range(2, 4)] == ["Poetry", "Travel"]
+    # Biggest category first (Travel has 3 books, Poetry 2)
+    assert [sm.cell(row=r, column=1).value for r in range(2, 4)] == ["Travel", "Poetry"]
     assert sm["B2"].value.startswith("=COUNTIF(Books!$B$2:$B$6")
     assert sm["A4"].value == "All"
     assert len(sm._charts) == 1
+    chart = sm._charts[0]
+    assert chart.x_axis.delete is False and chart.y_axis.delete is False
+
+
+def test_chart_shows_only_top_categories(tmp_path):
+    from bookscraper.models import Book
+
+    books = [
+        Book(
+            title=f"b{i}",
+            price=10.0,
+            rating=3,
+            in_stock=True,
+            url=f"u{i}",
+            category=f"C{i % 20:02d}",
+        )
+        for i in range(100)
+    ]
+    sm = load_workbook(write_excel(books, tmp_path / "many.xlsx"))["Summary"]
+    assert sm.max_row == 22  # header + 20 categories + "All"
+    assert sm._charts[0].title is not None
 
 
 def test_excel_formulas_compute_correctly(site, tmp_path):
