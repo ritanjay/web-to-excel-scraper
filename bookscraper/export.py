@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
@@ -45,6 +46,7 @@ WIDTHS = {
 HEADER_FILL = PatternFill("solid", fgColor="1F4E78")
 HEADER_FONT = Font(name="Calibri", bold=True, color="FFFFFF")
 GBP = '"£"#,##0.00'
+CHART_TOP_N = 15
 
 
 def _columns(books: list[Book]) -> list[str]:
@@ -76,7 +78,7 @@ def write_excel(
                    frozen header, GBP number format, clickable links.
       * Summary  - per-category count / average / min / max price and average
                    rating, written as live formulas over the Books table,
-                   plus a bar chart.
+                   sorted by size, plus a bar chart of the top categories.
       * About    - when and how the data was collected.
     """
     scraped_at = scraped_at or datetime.now(timezone.utc)
@@ -131,7 +133,9 @@ def write_excel(
     price_col = get_column_letter(cols.index("price") + 1)
     rate_col = get_column_letter(cols.index("rating") + 1)
     rng = lambda col: f"Books!${col}$2:${col}${max(n + 1, 2)}"  # noqa: E731
-    categories = sorted({b.category for b in books})
+    # Biggest categories first; ties alphabetical.
+    counts = Counter(b.category for b in books)
+    categories = sorted(counts, key=lambda c: (-counts[c], c))
     for i, cat in enumerate(categories, start=2):
         sm.cell(row=i, column=1, value=cat)
         sm.cell(row=i, column=2, value=f"=COUNTIF({rng(cat_col)},A{i})")
@@ -153,14 +157,18 @@ def write_excel(
 
     if categories:
         chart = BarChart()
+        top = min(CHART_TOP_N, len(categories))
         chart.type = "bar"
-        chart.title = "Books per category"
+        chart.title = f"Top {top} categories by number of books"
         chart.y_axis.title = "Books"
         chart.legend = None
-        chart.height = max(8, 0.45 * len(categories))
+        chart.height = max(7.5, 0.9 * top)
         chart.width = 18
-        data = Reference(sm, min_col=2, min_row=1, max_row=total_row - 1)
-        labels = Reference(sm, min_col=1, min_row=2, max_row=total_row - 1)
+        chart.x_axis.scaling.orientation = "maxMin"  # largest bar at the top
+        chart.x_axis.delete = False  # newer openpyxl hides axes by default
+        chart.y_axis.delete = False
+        data = Reference(sm, min_col=2, min_row=1, max_row=top + 1)
+        labels = Reference(sm, min_col=1, min_row=2, max_row=top + 1)
         chart.add_data(data, titles_from_data=True)
         chart.set_categories(labels)
         sm.add_chart(chart, "H2")
